@@ -7,25 +7,25 @@ Appify is a simple JavaScipt libary for turning boring old websites into Fluid a
 The instalation is made to be very simple, just do the following.
 
 Insert the following into the ``<head>`` element of your to be Application.
-```
+```html
 <script src=//stelch.com/projects/api/libaries/appify.js></script>
 ```
 
 And for each link
 
 Before:
-```
+```html
 <a href="#">Example</a>
 ```
 
 After:
-```
+```html
 <a href="#" onclick="appify.setpage('#')">Example</a>
 ```
 
 And finally, at the end of the page. Configure it!
 
-```
+```js
     document.body.onload=function(){appify.load({
         app_title:"**INSERT DESIRED NAME**",
         app_desc:"**SMALL DESCRIPTION**",
