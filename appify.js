@@ -1,126 +1,162 @@
 /*
-Appify by Stelch Software
-Last Revision 2/10/2018
+    Applet the rewrite of Stelch
+    Licensed under Apache License 2.0
+    Last Revision 5/03/2019
 */
 
-var conf={
-    app_title:"Basic Application",
-    app_desc:"Unconfigured Appify Appliication",
-    icon:"https://stelch.com/assets/img/stelch-software.png",
-    directory:"/assets/pg/$page",
-    app_version:0,
-    alert_count:30
-};
-
-var appify = function (){
-    console.log("Appify [V1.1]");
-    console.log(conf.app_title+" [V"+conf.version+"]");
-    console.log("Logging: "+(!!appify.data.isDev));
-    console.log("Debug: "+(!!appify.data.isDev));
-    console.log("isDev: "+(!!appify.data.isDev));
-};
-// Main Application
-appify.data = {
-    current_pg:"",
-    isDev:!!getCookie("isDev")
-};
-appify.updatetitle = function () {document.title=appify.data.current_pg.charAt(0).toUpperCase()+appify.data.current_pg.slice(1)+" // "+conf.app_title;(!!appify.data.isDev?console.log("Appify has updated the application title."):null);};
-appify.updateicon = function() {
-    var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-    link.type = 'image/x-icon';
-    link.rel = 'shortcut icon';
-    link.href = (conf.icon);
-    document.getElementsByTagName('head')[0].appendChild(link);
-    if(appify.data.isDev===true){console.log("Appify has updated the application icon.");}
-};
-appify.load = function(args){
-    if(args['app_title']!=null){conf['app_title']=args['app_title'];}
-    if(args['app_desc']!=null){conf['app_desc']=args['app_desc'];}
-    if(args['directory']!=null){conf['directory']=args['directory'];}
-    if(args['icon']!=null){conf['icon']=args['icon'];}
-    if(args['app_version']!=null){conf['app_version']=args['app_version'];}
-    if(args['alert_count']!=null){conf['alert_count']=args['alert_count'];}
-    if(args['page']!=null){conf['page']=args['page'];appify.setpage(args['page'],args['args']);}
-    console.log("Now loading Appify 1.1, module: "+conf.app_title);
-    appify.updatetitle();
-    appify.updateicon();
-    appify.setpage(args['page']);
-};
-appify.notify  = function(message, time){
-    if(time==null)
-    var alertbox = document.createElement("div");
-    alertbox.id="alert";
-    alertbox.innerHTML=message;
-};
-appify.getApplicationData = function() {
-    if(appify.data.isDev===true) console.log(JSON.stringify(conf));
-    if(!appify.data.isDev===true) console.log("Not a Developer");
-};
-appify.setpage = function(page,args) {
-    var bodyElem = null;
-    var progress = document.getElementById("appify_loader");
-    var arg_str = "args="+args;
-    if(document.getElementById("appify_body_element")!=null){
-        bodyElem=document.getElementById("appify_body_element");
-    }else {
-        bodyElem=document.createElement("div").id="appify_body_element";
+applet = {
+    conf:{
+        "applet_element":"applet_body_element",
+        "preload":true,
+        "default_page":"home",
+        "page_dir":"assets/pages/",
+        "page_scheme":"$page.html",
+        "error_handle":function (error) {
+            switch(error){
+                case 404:
+                    break;
+            }
+        },
+        "app_data":{}
+    },
+    listeners:{
+        page_change_event:[],
+        page_alert_event:[]
+    },
+    alert:{
+        queue:new Array(),
+        new:function(title,message){
+            var id = applet.alert.queue.length;
+            applet.alert.queue[id]=({
+                "id":id,
+                "title":title,
+                "message":message,
+                "initiator":['manual']
+            });
+            if(document.getElementById("stelch_alert")===null){
+                document.getElementsByTagName("body")[0].appendChild(function(){
+                    var abox = document.createElement("div");
+                    abox.id="stelch_alert";
+                    abox.style.display="block";
+                    abox.style.position="fixed";
+                    abox.style.top="0";
+                    abox.style.width="15%";
+                    abox.style.height="100%";
+                    abox.style.right="0%";
+                    return abox;
+                }());
+                push();
+            }else{push();}
+            function push(){
+                document.getElementById("stelch_alert").appendChild(function(){
+                    var abox = document.createElement("div");
+                    abox.id="alert_"+id;
+                    abox.style.transition="0.5s ease";
+                    abox.style.top="0";
+                    abox.style.boxShadow="#00000038 1px 2px 7px;";
+                    abox.style.display="block";
+                    abox.style.margin="5%";
+                    abox.style.width="90%";
+                    abox.style.height="8%";
+                    abox.style.float="right";
+                    abox.style.right="0%";
+                    abox.style.fontFamily="sans-serif";
+                    abox.style.background="rgb(236, 236, 236)";
+                    abox.style.color="#000";
+                    abox.style.borderRadius="5px";
+                    abox.style.padding="2%";
+                    abox.innerHTML="<span onclick='applet.alert.dismiss("+id+");' style='float:right;cursor:pointer;'>X</span><span class='title' style='display:block;font-weight:bold;font-size:25px;'>"+title+"</span><span class='message' style='display:block;font-weight:normal;font-size:15px;'>"+message+"</span>";
+                    return abox;
+                }());
+            }
+            return false;},
+        list:function(){return applet.alert.queue},
+        dismiss:function(id){
+            applet.alert.queue[id]=-1;
+            var abox = document.getElementById("alert_"+id);
+            abox.style.marginRight="-100%";
+            setTimeout(function(){
+                abox.parentNode.removeChild(abox);
+            },1200);
+            return false;}
+    },
+    page:{
+        set:function(page){
+            if(applet.conf.app_data.cache===undefined){applet.conf.app_data.cache=new Array();}
+            if(applet.conf.app_data.halted===undefined){applet.conf.app_data.halted=false;}
+            if(applet.conf.app_data.halted===true){console.error("A fatal error has occurred. The application is no longer responding. Please reload the page.");return;}
+            var data = null;
+            let cached = false;
+            if(applet.conf.app_data.cache[page]!==undefined){
+                // Cache exists
+                cached=true;
+                console.log("Loaded from cache");
+                data=applet.conf.app_data.cache[page].pageData;
+                finish();
+            }else {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange=function(){if(this.readyState===4&&this.status===200){data=this.responseText;applet.conf.app_data.cache[page]={"pageData":data};applet.conf.app_data.failed_loads=0;finish();}else if(this.readyState===4&&this.status===404){if(applet.conf.app_data.failed_loads===0){applet.page.reload();}else{applet.alert.new("Fatal Error","Attempted to load default page and failed. The application has exited.");applet.conf.app_data.halted=true;} applet.alert.new("Error","We've encountered a 404. This has been reported to the site Admin.");}};
+                xhttp.open("GET", applet.conf.page_dir+(applet.conf.page_scheme.replace("$page",page)), true);
+                xhttp.send();
+            }
+            function finish(){
+                window.location.hash = "/page/" + page;
+                for(var i=0;i<applet.listeners.page_change_event.length;i++){
+                    applet.listeners.page_change_event[i]({page:page,cached:cached});
+                }
+                document.getElementById(applet.conf.applet_element).innerHTML = data;
+            }
+        },
+        cache:function(page){
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange=function(){if(this.readyState===4&&this.status===200){applet.conf.app_data.cache[page]={"pageData":this.responseText};}};
+            xhttp.open("GET", applet.conf.page_dir+(applet.conf.page_scheme.replace("$page",page)), true);
+            xhttp.send();
+        },
+        preload:function(){
+            var links = getElementsByAttribute("-applet-data-link");
+            for(var i=0;i<links.length;i++){
+                var link=links[i];
+                this.cache(link.getAttribute("-applet-data-link"))
+            }
+        },
+        reload:function(e){if(e!==undefined&&e===true){/*Initial Load*/if(window.location.hash.split.length>1){return;}}if(applet.conf.app_data.halted===true){return;}applet.page.set(applet.conf.default_page);applet.conf.app_data.failed_loads=1;}
+    },
+    events:{
+        "hashchange":function(){
+            var page = window.location.hash.split("/")[2];
+            if(page!==undefined){applet.page.set(page);}
+        }
+    },
+    addEventListener:(event,callback)=>{
+        switch(event.toLowerCase()){
+            case "pagechangeevent":
+                applet.listeners.page_change_event.push(callback);
+                break;
+            case "onalert":
+                applet.listeners.page_alert_event.push(callback);
+                break;
+            default:
+                throw new Error("Invalid event requested "+event);
+        }
     }
-    if(progress){progress.getElementsByClassName("fill")[0].opacity="1";progress.width="0";}
-    document.body.style.cursor="progress";
-    var xmlhttp;
-
-    if (window.XMLHttpRequest) {xmlhttp = new XMLHttpRequest();
-
-    } else {xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");}
-    xmlhttp.onreadystatechange = function() {
-        if(progress){progress.getElementsByClassName("fill")[0].width="100%";}
-
-        if (this.readyState == 4 && this.status == 200) {
-            if(appify.data.isDev===true){console.log("Appify page has been changed to '"+page.substr(0,1)+page.substr(1)+"' from '"+appify.data.current_pg+"'");}
-            appify.data.current_pg=page.substr(0,1)+page.substr(1);
-            appify.updatetitle();
-            //window.history.pushState(page, document.title, './'+page);
-            bodyElem.innerHTML=this.responseText;
-            document.body.style.cursor="";
-            appify.data.attempts=0;
-            if(progress){progress.width="0";}
-        }
-        if(this.status==404){
-            appify.data.attempts=((appify.data.attempts!==undefined)?appify.data.attempts:0)+1;
-            if(appify.data.attempts>3){return;}
-            appify.setpage(appify.data.current_pg);
-            ((!!appify.data.isDev===true)? console.log(`Application replied 404 not found for page ${page}`):null);
-        }
-    };
-    //xmlhttp.open("GET", "/assets/pg/"+page+".php?"+arg_str, true);
-    xmlhttp.open("GET", conf.directory.replace("$page",page)+".php?"+arg_str, true);
-    xmlhttp.send();
 };
-appify.handlelink = function(p,args) {
-    appify.setpage(p,args);
-};
-appify.logout = function(){
-    window.location=window.location+"?&logout";
-};
+window.addEventListener("hashchange", applet.events.hashchange(),false);
 
-function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for(var i = 0; i <ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
+/* Misc Support Functions */
+getElementsByAttribute = function(attr){
+    var checking = false;
+    var root = document.body;
+    var results = [];
+    checkChildren(root);
+    function checkChildren(elem){
+        checking=true;
+        var children = elem.children;
+        for(var i=0;i<children.length;i++){
+            if(children[i].children!==null){checkChildren(children[i]);}
+            if(!!children[i].getAttribute(attr)===true){results.push(children[i]);}
         }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
+        checking=false;
     }
-    return "";
-}
-function delete_cookie( name, path, domain ) {
-        document.cookie = name + "=" +
-            ((path) ? ";path="+path:"")+
-            ((domain)?";domain="+domain:"") +
-            ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
-}
+    return results;
+};
