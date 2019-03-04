@@ -8,7 +8,7 @@ The instalation is made to be very simple, just do the following.
 
 Insert the following into the ``<head>`` element of your to be Application.
 ```html
-<script src=//stelch.com/projects/api/libaries/appify.js></script>
+<script src="applet.js" onload="applet.conf.applet_element='``{AppletJS body element}``';" type="text/javascript"></script>
 ```
 
 And for each link
@@ -20,22 +20,7 @@ Before:
 
 After:
 ```html
-<a href="#" onclick="appify.setpage('#')">Example</a>
-```
-
-And finally, at the end of the page. Configure it!
-
-```js
-    document.body.onload=function(){appify.load({
-        app_title:"**INSERT DESIRED NAME**",
-        app_desc:"**SMALL DESCRIPTION**",
-        icon:"**FULL LOCATION TO FAVICON**",
-        page:"**DEFAULT PAGE**",
-        args:"**ANY ARGUMENTS YOU WANT TO PASS**",
-        app_version:1.0,
-        alert_count:30
-    })};
-
+<a href="#" -applet-data-link="``{Page title}``" onclick="applet.page.set('``{Page title}``');">Example</a>
 ```
 
 ## Authors
